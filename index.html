@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <title>Euro 2020 Emissions</title>
+</head>
+
+<body>
+<style>
+
+    body {
+        background: #c5e2f6;
+    }
+
+    .countries {
+        fill: #b2d0b9;
+        stroke: #fff;
+        stroke-width: 0.25px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+    .venue {
+        font-size: 6px;
+    }
+    .home {
+        font-size: 4px;
+        cursor: pointer;
+    }
+    .fans {
+        cursor: pointer;
+        transition-property: all;
+        transition-property: transform;
+        transition-duration: 0.5s;
+    }
+    .fans:hover {
+        transform: translate(21px, 21px);
+
+    }
+
+    .date {
+        font-size: 10px;
+    }
+
+    .best-case {
+        fill: darkorange;
+    }
+    .worst-case {
+        fill: orangered;
+    }
+    .emissions-label {
+        font-size: 3px;
+        font-weight: bold;
+    }
+    .value {
+        font-family: monospace;
+        font-size: 9px;
+    }
+
+    .route {
+        fill: none;
+        stroke: red;
+        opacity: 0.2;
+        stroke-width: 4px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+    .plane {
+        fill: #fff;
+        stroke: #e04548;
+        stroke-width: 1px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+</style>
+
+<div id="map"></div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"-->
+<!--        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"-->
+<!--        crossorigin="anonymous"></script>-->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/queue.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script src="js/flightanimation.js"></script>
+</body>
+</html>
