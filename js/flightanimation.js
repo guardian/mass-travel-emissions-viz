@@ -1,7 +1,7 @@
 $(function() {
 
   const VENUES = [
-    "OTP", //FIXME needs adding to airports.topo.json
+    "OTP",
     "GYD",
     "DUB",
     "MUC",
@@ -38,7 +38,7 @@ $(function() {
     MSQ:"🇧🇾",
     DME:"🇷🇺",
     PRG:"🇨🇿",
-    BTS:"-🇸🇰",
+    BTS:"-🇸🇰", // hypen  is to push this one right, because of overlap with another flag
     MUC:"🇩🇪"
   };
 
@@ -134,21 +134,28 @@ $(function() {
     ]
   }), {});
 
-  var currentWidth = $('#map').width();
-  var width = 938;
-  var height = 620;
+  let currentWidth = $('#map').width();
+  const width = 938;
+  const height = 620;
 
-  var projection = d3.geo
+  const filter = new URLSearchParams(window.location.search).get("filter");
+  const showFanTravel = new URLSearchParams(window.location.search).get("showFanTravel");
+
+  const dayDuration = showFanTravel ? 800 : 600;
+
+  const jankDivider = 10; //TODO base this on power of machine
+
+  const projection = d3.geo
   .mercator()
   .scale(150)
   .translate([width / 2, height / 1.41]);
 
-  var path = d3.geo
+  const path = d3.geo
   .path()
   .pointRadius(1)
   .projection(projection);
 
-  var svg = d3.select("#map")
+  const svg = d3.select("#map")
   .append("svg")
   .attr("preserveAspectRatio", "xMidYMid")
   .attr("viewBox", "400 210 200 150")
@@ -160,26 +167,40 @@ $(function() {
   .attr("x", 405)
   .attr("y", 240);
 
-  var airportMap = {};
+  const attrRouteId = "data-route-id";
+  const attrDate = "data-date";
 
-  function transition(plane, route, flight) {
-    var l = route.node().getTotalLength();
-    plane.transition()
-    .duration(3000)
-    .attrTween("transform", delta(plane, route.node(), flight))
-    .remove();
+  function startAnimation(date, daysFlights) {
+
+    const timePerFlight = dayDuration / daysFlights.length;
+
+    svg.selectAll(`.plane[${attrDate}="${date}"]`)
+    .transition()
+    .delay((d, index) => index * timePerFlight)
+    .duration(dayDuration * 2)
+    .attrTween("transform", delta(daysFlights))
+    .each("start", () => {
+      //TODO add flight counter
+    })
+    .remove(); // removes plane after transition
   }
 
-  function delta(plane, path, flight) {
-    const length = path.getTotalLength();
-    return function(i) {
-      return function(t) {
+  function delta(daysFlights) {
+
+    return function(d, index ) {
+
+      const route = svg.select(`#${this.getAttribute(attrRouteId)}`)/*.style("visibility", null)*/.node();
+
+      const length = route.getTotalLength();
+
+      const flight = daysFlights[index]; // not 100% sure the order is maintained
+
+      return function (t) {
 
         flight.travelledThusFar = flight.kilometers * t;
 
-        if(flight.fanTravel && flight.team && flight.direction){
-          flight.fanTravel[`travelledThusFar${flight.direction}${flight.team}`] = flight.kilometers * t
-            * 10; //because 'numberOfFlightsPerFanTeam' is divided by 1500 instead of 150 - because melty laptop
+        if (flight.fanTravel && flight.team && flight.direction) {
+          flight.fanTravel[`travelledThusFar${flight.direction}${flight.team}`] = flight.kilometers * t * jankDivider;
         }
 
         const totalTravelledThusFar =
@@ -190,7 +211,10 @@ $(function() {
             (fanTravel.travelledThusFarReturnA || 0) +
             (fanTravel.travelledThusFarReturnB || 0)
             , 0) +
-          FLIGHT_LIST.map(_ => (_.travelledThusFar || 0)).reduce((acc, num) => acc + num, 0);
+          FLIGHT_LIST.reduce(
+            (acc, flight) => acc + (flight.travelledThusFar || 0)
+            , 0
+          );
 
         svg.selectAll(".best-case").filter(".value").text(
           (totalTravelledThusFar * 10).toFixed(0)
@@ -205,10 +229,11 @@ $(function() {
           .replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
 
-        const p = path.getPointAtLength(t * length);
+
+        const p = route.getPointAtLength(t * length);
 
         const t2 = Math.min(t + 0.05, 1);
-        const p2 = path.getPointAtLength(t2 * length);
+        const p2 = route.getPointAtLength(t2 * length);
 
         const x = p2.x - p.x;
         const y = p2.y - p.y;
@@ -218,19 +243,30 @@ $(function() {
 
         return `translate(${p.x}, ${p.y}) scale(${scale}) rotate(${rotation})`;
       }
+
     }
+
   }
 
-  function fly(flight) {
+  const createRouteAndPlane = (airportMap, date) => (flight, index) =>  {
 
-    console.log(flight);
+    // console.log(flight);
 
-    var route = svg.append("path")
+    const routeId = `route${index}on${date}`;
+
+
+
+    svg.append("path")
     .datum({type: "LineString", coordinates: [airportMap[flight.origin], airportMap[flight.destination]]})
+    .attr("id", routeId)
     .attr("class", "route")
+    // .style("stroke-width", (1+index)/100)
+    // .style("visibility", "hidden") // TODO start these both off as hidden and unhide when transition starts
     .attr("d", path);
 
-    var plane = svg.append("path")
+    svg.append("path")
+    .attr(attrRouteId, routeId)
+    .attr(attrDate, date)
     .attr("class", "plane")
     .attr("d", "m25.21488,3.93375c-0.44355,0 -0.84275,0.18332 -1.17933,0.51592c-0.33397,0.33267 -0.61055," +
       "0.80884 -0.84275,1.40377c-0.45922,1.18911 -0.74362,2.85964 -0.89755,4.86085c-0.15655,1.99729 -0.18263," +
@@ -245,10 +281,18 @@ $(function() {
       "-1.99844 -0.44094,-3.6683 -0.90277,-4.8561c-0.22699,-0.59493 -0.50356,-1.07111 -0.83754,-1.40377c-0.33658," +
       "-0.3326 -0.73578,-0.51592 -1.18194,-0.51592l0,0l-0.00001,0l0,0");
 
-    transition(plane, route, flight);
-  }
+  };
 
   function loaded(error, countries, airports) {
+
+    const airportMap = topojson.feature(airports, airports.objects.airports).features.reduce(
+      (acc, currentItem) => ({
+        ...acc,
+        [currentItem.id]: currentItem.geometry.coordinates
+      }),
+      {}
+    );
+
     svg.append("g")
     .attr("class", "countries")
     .selectAll("path")
@@ -264,7 +308,6 @@ $(function() {
     .enter()
     .append("text")
     .filter(dataPoint => VENUES.includes(dataPoint.id))
-    // .text("⚽")
     .text("🏟")
     .attr("x", dataPoint => projection(dataPoint.geometry.coordinates)[0] - 3)
     .attr("y", dataPoint => projection(dataPoint.geometry.coordinates)[1] + 3);
@@ -330,108 +373,69 @@ $(function() {
     .attr('width', 25)
     .attr('height', 25)
     .attr("xlink:href", "fan.gif")
-    // TODO add hover move
     .on('click', () => window.location.href = `index.html?showFanTravel=true`);
 
-    var geos = topojson.feature(airports, airports.objects.airports).features;
-    for (i in geos) {
-      airportMap[geos[i].id] = geos[i].geometry.coordinates;
-    }
-
-    const filter = new URLSearchParams(window.location.search).get("filter");
-    const showFanTravel = new URLSearchParams(window.location.search).get("showFanTravel");
-
     Object.entries(FLIGHT_LIST_GROUPED).forEach(
-      ([date, daysFlights], dayIndex) =>
+      ([date, teamsFlights], dayIndex) =>
         setTimeout(
           () => {
 
-            console.log(date);
+            // console.log(date);
             svg.select(".date").text(date);
 
-            if(showFanTravel){
-              FAN_FLIGHTS.filter(_ => _.outbound === date).forEach((fanTravel, fanTravelIndex) => {
+            const daysFlights = [
+              ...teamsFlights,
+              ...FAN_FLIGHTS
+              .filter(_ => showFanTravel && (_.outbound === date || _.return === date))
+              .reduce((acc, fanTravel) => {
 
-                const numberOfFlightsPerFanTeam = (fanTravel.capacity / 4) / 1500;
+                const numberOfFlightsPerFanTeam = (fanTravel.capacity / 4) / 150; // quarter of capacity per team's fans, then 150 per plane
 
-                for (var i = 0; i < numberOfFlightsPerFanTeam; i++) {
+                const isOutbound = fanTravel.outbound === date;
 
-                  setTimeout(() => {
-                    if (fanTravel.originA !== fanTravel.destination) {
-                      fly({
-                        fanTravel,
-                        team: "A",
-                        direction: "Outbound",
-                        date,
-                        origin: fanTravel.originA,
-                        destination: fanTravel.destination,
-                        travellingTeamsHomeAirport: fanTravel.originA,
-                        kilometers: fanTravel.kilometersA
-                      });
-                    }
-                    if (fanTravel.originB !== fanTravel.destination) {
-                      fly({
-                        fanTravel,
-                        team: "B",
-                        direction: "Outbound",
-                        date,
-                        origin: fanTravel.originB,
-                        destination: fanTravel.destination,
-                        travellingTeamsHomeAirport: fanTravel.originB,
-                        kilometers: fanTravel.kilometersB
-                      });
-                    }
-                  }, i * 50);
+                for (let index = 0; index < (numberOfFlightsPerFanTeam / jankDivider); index++) { //TODO convert to functional
+
+                  if (fanTravel.originA !== fanTravel.destination) {
+                    acc.push({
+                      fanTravel,
+                      team: "A",
+                      direction: isOutbound ? "Outbound" : "Return",
+                      date,
+                      origin: isOutbound ? fanTravel.originA : fanTravel.destination,
+                      destination: isOutbound ? fanTravel.destination : fanTravel.originA,
+                      travellingTeamsHomeAirport: fanTravel.originA,
+                      kilometers: fanTravel.kilometersA
+                    });
+                  }
+                  if (fanTravel.originB !== fanTravel.destination) {
+                    acc.push({
+                      fanTravel,
+                      team: "B",
+                      direction: isOutbound ? "Outbound" : "Return",
+                      date,
+                      origin: isOutbound ? fanTravel.originB : fanTravel.destination,
+                      destination: isOutbound ? fanTravel.destination : fanTravel.originB,
+                      travellingTeamsHomeAirport: fanTravel.originB,
+                      kilometers: fanTravel.kilometersB
+                    });
+                  }
                 }
-              });
-              FAN_FLIGHTS.filter(_ => _.return === date).forEach(fanTravel  => {
+                return acc;
 
-                const numberOfFlightsPerFanTeam = (fanTravel.capacity / 4) / 1500;
+              }, [])
 
-                for (var i = 0; i < numberOfFlightsPerFanTeam; i++) {
-
-                  setTimeout(() => {
-
-                    if (fanTravel.originA !== fanTravel.destination) {
-                      fly({
-                        fanTravel,
-                        team: "A",
-                        direction: "Return",
-                        date,
-                        origin: fanTravel.destination,
-                        destination: fanTravel.originA,
-                        travellingTeamsHomeAirport: fanTravel.originA,
-                        kilometers: fanTravel.kilometersA
-                      });
-                    }
-                    if (fanTravel.originB !== fanTravel.destination) {
-                      fly({
-                        fanTravel,
-                        team: "B",
-                        direction: "Return",
-                        origin: fanTravel.destination,
-                        destination: fanTravel.originB,
-                        travellingTeamsHomeAirport: fanTravel.originB,
-                        kilometers: fanTravel.kilometersB
-                      });
-                    }
-
-                  }, i * 50);
-
-                }
-              });
-            }
-
-            daysFlights
-            .filter(flight =>
+            ].filter(flight =>
               !filter || flight.travellingTeamsHomeAirport === filter
-            )
-            .forEach((flight, flightIndex) => {
-              setTimeout(() => fly(flight), flightIndex * 100)
+            );
 
-            })
+            daysFlights.forEach(
+              createRouteAndPlane(airportMap, date)
+            );
+
+            startAnimation(date, daysFlights);
+
           },
-          dayIndex * (filter ? 400 : (showFanTravel ? 800 : 600))
+          dayIndex * dayDuration
         )
 
     );
