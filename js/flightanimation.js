@@ -169,6 +169,7 @@ $(function() {
 
   const attrRouteId = "data-route-id";
   const attrDate = "data-date";
+  const attrFromAndTo = "data-from-and-to";
 
   function startAnimation(date, daysFlights) {
 
@@ -189,7 +190,7 @@ $(function() {
 
     return function(d, index ) {
 
-      const route = svg.select(`#${this.getAttribute(attrRouteId)}`)/*.style("visibility", null)*/.node();
+      const route = svg.select(`#${this.getAttribute(attrRouteId)}`).style("visibility", null).node();
 
       const length = route.getTotalLength();
 
@@ -254,14 +255,20 @@ $(function() {
 
     const routeId = `route${index}on${date}`;
 
-
+    const fromAndTo = `${flight.origin}-${flight.destination}`;
+    const fromAndToInverse = `${flight.destination}-${flight.origin}`;
+    const numberOfSimilarJourneys =
+      svg.selectAll(`.route[${attrFromAndTo}="${fromAndTo}"]`).size() +
+      svg.selectAll(`.route[${attrFromAndTo}="${fromAndToInverse}"]`).size();
+    const similarJourneyMultiplier = showFanTravel ? 0.03 : 0.3;
 
     svg.append("path")
     .datum({type: "LineString", coordinates: [airportMap[flight.origin], airportMap[flight.destination]]})
     .attr("id", routeId)
+    .attr(attrFromAndTo, fromAndTo)
     .attr("class", "route")
-    // .style("stroke-width", (1+index)/100)
-    // .style("visibility", "hidden") // TODO start these both off as hidden and unhide when transition starts
+    .style("stroke-width", 0.3 + (numberOfSimilarJourneys * similarJourneyMultiplier))
+    .style("visibility", "hidden") // TODO start these both off as hidden and unhide when transition starts
     .attr("d", path);
 
     svg.append("path")
