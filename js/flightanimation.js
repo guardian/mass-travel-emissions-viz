@@ -162,6 +162,8 @@ $(function() {
   .attr("width", currentWidth)
   .attr("height", currentWidth * height / width);
 
+  const baseLayer= svg.append("g");
+
   svg.append("text")
   .attr("class", "date")
   .attr("x", 405)
@@ -262,7 +264,7 @@ $(function() {
       svg.selectAll(`.route[${attrFromAndTo}="${fromAndToInverse}"]`).size();
     const similarJourneyMultiplier = showFanTravel ? 0.03 : 0.3;
 
-    svg.append("path")
+    baseLayer.append("path")
     .datum({type: "LineString", coordinates: [airportMap[flight.origin], airportMap[flight.destination]]})
     .attr("id", routeId)
     .attr(attrFromAndTo, fromAndTo)
@@ -271,7 +273,7 @@ $(function() {
     .style("visibility", "hidden") // TODO start these both off as hidden and unhide when transition starts
     .attr("d", path);
 
-    svg.append("path")
+    baseLayer.append("path")
     .attr(attrRouteId, routeId)
     .attr(attrDate, date)
     .attr("class", "plane")
@@ -300,7 +302,7 @@ $(function() {
       {}
     );
 
-    svg.append("g")
+    baseLayer.append("g")
     .attr("class", "countries")
     .selectAll("path")
     .data(topojson.feature(countries, countries.objects.countries).features)
