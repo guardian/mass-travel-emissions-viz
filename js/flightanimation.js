@@ -141,7 +141,7 @@ $(function() {
   const filter = new URLSearchParams(window.location.search).get("filter");
   const showFanTravel = new URLSearchParams(window.location.search).get("showFanTravel");
 
-  const dayDuration = showFanTravel ? 800 : 600;
+  const dayDuration = showFanTravel ? 1000 : 800;
 
   const jankDivider = 10; //TODO base this on power of machine
 
